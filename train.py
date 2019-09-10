@@ -14,13 +14,15 @@ import pickle
 # from sklearn.utils import shuffle
 
 
-def load_data(path):
-    
-    s3_client = boto3.client('s3')
-    pickle_obj = s3_client.get_object(Bucket='sagemaker-connectedcar',Key='driver-scores-dataset/data.pickle')
-    data = pickle.loads(pickle_obj['Body'].read())
-    pickle_obj = s3_client.get_object(Bucket='sagemaker-connectedcar',Key='driver-scores-dataset/label.pickle')
-    label = pickle.loads(pickle_obj['Body'].read())
+def load_pickle_file(path):
+    with open(path, 'rb') as f:
+        data = pickle.load(f)
+
+    return data
+
+def load_data():
+    data = load_pickle_file('/opt/ml/code/data.pickle')
+    label = load_pickle_file('/opt/ml/code/label.pickle')
     
     return split_data(data, label)
 
@@ -54,7 +56,7 @@ def get_training_context(num_gpus):
 
 def train(hyperparameters, input_data_config, channel_input_dirs, output_data_dir,
           num_gpus, num_cpus, hosts, current_host, **kwargs):
-    train_images, train_labels, val_images, val_labels  = load_data(os.path.join(channel_input_dirs['data']))
+    train_images, train_labels, val_images, val_labels  = load_data()
     batch_size = 10
     train_iter = mx.io.NDArrayIter(train_images, train_labels, batch_size, shuffle=True)
     val_iter = mx.io.NDArrayIter(val_images, val_labels, batch_size)
